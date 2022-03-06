@@ -1,15 +1,12 @@
 package common
 
-import Receipt
+import dto.Receipt
 import com.google.gson.Gson
-import com.google.gson.TypeAdapter
-import com.google.gson.stream.JsonReader
-import com.google.gson.stream.JsonWriter
-import java.time.LocalDateTime
+import dto.BaseDto
 
 object JsonParser {
     private val gson = Gson()
 
     fun getParser() = gson
-    fun parseToReceipt(json: String): Receipt = getParser().fromJson(json, Receipt::class.java).apply { this.initialize() }
+    fun <T: BaseDto> parseTo(json: String, clazz: Class<T>): T = getParser().fromJson(json, clazz).apply { this.initialize() }
 }
