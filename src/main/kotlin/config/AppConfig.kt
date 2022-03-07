@@ -4,6 +4,7 @@ import org.yaml.snakeyaml.Yaml
 
 class AppConfig private constructor(){
     lateinit var server: ServerConfig
+    lateinit var database: DatabaseConfig
 
     companion object {
         private val yaml = Yaml()

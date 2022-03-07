@@ -9,4 +9,7 @@ object JsonParser {
 
     fun getParser() = gson
     fun <T: BaseDto> parseTo(json: String, clazz: Class<T>): T = getParser().fromJson(json, clazz).apply { this.initialize() }
+    fun serialize(data: Any): String? {
+        return getParser().toJson(data)
+    }
 }

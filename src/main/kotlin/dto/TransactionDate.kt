@@ -1,8 +1,6 @@
 package dto
 
 import common.DateTimeParser
-import java.time.LocalDateTime
-import java.time.ZoneOffset
 
 class TransactionDate(val base: String) {
 
@@ -13,4 +11,10 @@ class TransactionDate(val base: String) {
 
     val toEpoch get() = dateTime.time
     val hour get() = localDateTime.hour
+
+    companion object {
+        fun from(epoch: Long): TransactionDate {
+            return TransactionDate(DateTimeParser.epochToString(epoch))
+        }
+    }
 }

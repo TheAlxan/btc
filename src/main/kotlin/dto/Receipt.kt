@@ -8,6 +8,10 @@ class Receipt(@SerializedName("datetime") private val dateTime: String, val amou
     @Transient
     lateinit var transactionDate: TransactionDate
 
+    init {
+        transactionDate = TransactionDate(dateTime)
+    }
+
     override fun initialize() {
         transactionDate = TransactionDate(dateTime)
     }

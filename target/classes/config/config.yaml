@@ -1,3 +1,8 @@
 server:
   ip: 127.0.0.1
   port: 8111
+
+database:
+  username: Reza
+  password: TheAlxan
+  url: jdbc:h2:~/anymind

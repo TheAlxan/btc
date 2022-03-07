@@ -23,7 +23,12 @@ class Server {
     }
 
     private fun setUpRoutes(router: Router) {
-        router.route(HttpMethod.POST, "/save").handler(BodyHandler.create()).handler(SaveHandler())
-        router.route(HttpMethod.GET, "/balance").handler(BodyHandler.create()).handler(BalanceHandler())
+        router.route(HttpMethod.POST, "/save")
+            .handler(BodyHandler.create())
+            .handler(SaveHandler())
+
+        router.route(HttpMethod.GET, "/balance")
+            .handler(BodyHandler.create())
+            .handler(BalanceHandler())
     }
 }
