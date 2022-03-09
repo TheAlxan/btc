@@ -1,20 +1,20 @@
-package controller
+package controller.balance
 
+import controller.BaseController
 import dto.BalanceRequest
-import dto.Receipt
 import dto.TransactionList
 import exception.Common
 import service.BalanceService
-import java.math.BigDecimal
 
 class BalanceHandler : BaseController<BalanceRequest>(BalanceRequest::class.java) {
     private val balanceService = BalanceService()
 
-    override fun guard(input: BalanceRequest) {
+    override fun guard(request: Request<BalanceRequest>) {
+        val input = request.input
         require(input.startDate.toEpoch < input.endDate.toEpoch) { throw Common.NonePositiveAmountException() }
     }
 
-    override fun handleRequest(input: BalanceRequest): TransactionList {
-        return balanceService.getBalanceInRange(input)
+    override fun handleRequest(request: Request<BalanceRequest>): TransactionList {
+        return balanceService.getBalanceInRange(request.input)
     }
 }

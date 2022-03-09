@@ -1,18 +1,25 @@
 package common
 
 import java.text.SimpleDateFormat
-import java.time.Instant
-import java.time.LocalDateTime
-import java.time.ZoneId
+import java.time.*
+import java.time.format.DateTimeFormatter
+import java.time.temporal.TemporalAccessor
 import java.util.*
 
 object DateTimeParser {
-    const val TIME_ZONE_ID_STRING = "GMT"
-    val TIME_ZONE_ID = ZoneId.of(TIME_ZONE_ID_STRING)
-    private val dateFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX")
+    private const val TIME_ZONE_ID_STRING = "+00:00"
+    private const val DATE_FORMAT = "yyyy-MM-dd'T'HH:mm:ssXXX"
 
-    fun parseToDate(dateString: String): Date = dateFormat.parse(dateString)
-    fun parseWithTimeZoneToLocalDate(dateString: String, zoneId: String): LocalDateTime = LocalDateTime.ofInstant(parseToDate(dateString).toInstant(), TimeZone.getTimeZone(zoneId).toZoneId())
-    fun parseToLocalDate(dateString: String): LocalDateTime = parseWithTimeZoneToLocalDate(dateString, TIME_ZONE_ID_STRING)
-    fun epochToString(epoch: Long): String = dateFormat.format(Date.from(Instant.ofEpochMilli(epoch)))
+    private val zonedDateFormat = DateTimeFormatter.ofPattern(DATE_FORMAT)
+
+    fun parseToDate(dateString: String): ZonedDateTime = ZonedDateTime.parse(dateString, zonedDateFormat)
+    fun epochToString(epoch: Long): String {
+        return epochToString(epoch, ZoneId.of(TIME_ZONE_ID_STRING))
+    }
+
+    fun epochToString(epoch: Long, zoneId: ZoneId): String {
+        val localDateTime = LocalDateTime.ofEpochSecond(epoch, 0, ZoneOffset.of(zoneId.id))!!
+        val zoneDateTime = ZonedDateTime.ofInstant(localDateTime, ZoneOffset.of(zoneId.id), zoneId)
+        return zonedDateFormat.format(zoneDateTime)
+    }
 }

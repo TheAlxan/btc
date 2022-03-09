@@ -10,7 +10,7 @@ internal class DateTimeTest {
     @Test
     fun `should parse date string`(){
         val dateString = "2019-10-05T14:48:01+01:00"
-        val localDate = DateTimeParser.parseWithTimeZoneToLocalDate(dateString, TimeZone.getTimeZone(ZoneId.ofOffset("GMT", ZoneOffset.ofHours(1))).toZoneId().id)
+        val localDate = DateTimeParser.parseToDate(dateString)
         assert(localDate.year == 2019)
         assert(localDate.monthValue == 10)
         assert(localDate.dayOfMonth == 5)

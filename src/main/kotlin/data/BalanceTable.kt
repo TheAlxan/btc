@@ -46,10 +46,10 @@ object BalanceTable : BaseTable("balance") {
             val latest = getLatestRecord()
             val latestClear = if (latest?.status == RecordStatus.CLEAR) latest else getLatestClearRecord()
 
-            val currentBalance = latestClear?.balance ?: BigDecimal.ZERO
+            var currentBalance = latestClear?.currentBalance ?: BigDecimal.ZERO
             currentBalance.plus(receipt.amount)
             if (latest?.isLate() == true)
-                currentBalance.plus(latest.amount)
+                currentBalance = currentBalance.plus(latest.amount)
 
 
             insert {
@@ -64,8 +64,8 @@ object BalanceTable : BaseTable("balance") {
     fun getBalance(range: BalanceRequest): TransactionList {
         return transactionForBalance {
             val transactions = getRecordsInRange(range)
-            val lateBalance = getLateRecordsSumBefore(range.startDate)
-            transactions.forEach { it.balance.plus(lateBalance) }
+            var lateBalance = getLateRecordsSumBefore(range.startDate)
+            transactions.forEach { it.setBalance(lateBalance); it.sum(it.amount); lateBalance = it.currentBalance }
             return@transactionForBalance TransactionList(transactions.map { it.toReceipt() })
         }!!
     }
@@ -111,17 +111,26 @@ object BalanceTable : BaseTable("balance") {
     }
 
     private fun TransactionRecord.toReceipt(): Receipt {
-        return Receipt(DateTimeParser.epochToString(this.time.toEpoch), this.balance)
+        return Receipt(DateTimeParser.epochToString(this.time.toEpoch, this.time.timeZone), this.currentBalance)
     }
 
     private data class TransactionRecord(
         val id: Int,
         val time: TransactionDate,
         val amount: BigDecimal,
-        val balance: BigDecimal,
+        var currentBalance: BigDecimal,
         val status: RecordStatus
     ) {
         fun isLate() = status == RecordStatus.LATE
+
+
+        fun sum(other: BigDecimal) {
+            currentBalance = currentBalance.plus(other)
+        }
+
+        fun setBalance(newBalance: BigDecimal) {
+            currentBalance = newBalance
+        }
     }
 }
 

@@ -6,24 +6,27 @@ import exception.BaseException
 import io.vertx.core.Handler
 import io.vertx.ext.web.RoutingContext
 
-abstract class BaseController<T: BaseDto>(private val clazz: Class<T>): Handler<RoutingContext> {
-    abstract fun guard(input: T)
-    abstract fun handleRequest(input: T): Any?
-    override fun handle(req: RoutingContext) {
+abstract class BaseController<T>(private val clazz: Class<T>): Handler<RoutingContext> {
+    abstract fun guard(request: Request<T>)
+    abstract fun handleRequest(request: Request<T>): Any?
+    override fun handle(ctx: RoutingContext) {
         try {
-            val input: T = deserialize(req)
-            guard(input)
-            val result = handleRequest(input)?.let { JsonParser.serialize(it) } ?: "Successful!"
-            req.end(result)
+            val request = Request<T>(ctx, deserialize(ctx))
+            guard(request)
+            val result = handleRequest(request)?.let { JsonParser.serialize(it) } ?: "Successful!"
+            ctx.end(result)
         } catch (e: Exception) {
             if (e is BaseException) {
-                req.end(e.msg)
+                ctx.end(e.msg)
             } else {
-                req.end("Something went wrong!")
+                ctx.end("Something went wrong!")
                 e.printStackTrace()
             }
         }
     }
 
-    private fun deserialize(req: RoutingContext) = JsonParser.parseTo(req.bodyAsString, clazz)
+    private fun deserialize(req: RoutingContext) = JsonParser.parseTo(req.bodyAsString ?: "", clazz)
+    fun getPathParameter(context: RoutingContext, name: String): String? = context.request().getParam(name)
+
+    data class Request<T>(val context: RoutingContext, val input: T)
 }

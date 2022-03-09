@@ -1,8 +1,9 @@
 package server
 
 import config.AppConfig
-import controller.BalanceHandler
-import controller.SaveHandler
+import controller.admin.AdminHandler
+import controller.balance.BalanceHandler
+import controller.balance.SaveHandler
 import io.vertx.core.Vertx
 import io.vertx.core.http.HttpMethod
 import io.vertx.ext.web.Router
@@ -30,5 +31,9 @@ class Server {
         router.route(HttpMethod.GET, "/balance")
             .handler(BodyHandler.create())
             .handler(BalanceHandler())
+
+        router.route(HttpMethod.POST, "/admin/:cmd")
+            .handler(BodyHandler.create())
+            .handler(AdminHandler())
     }
 }

@@ -18,23 +18,18 @@ class BalanceService {
     }
 
     private fun getBalanceReportPerHour(transactionList: TransactionList, range: BalanceRequest): TransactionList {
-        val hourOffset = 1000 * 60 * 60
         val list = transactionList.list
-        var startingHour = range.getStartingHour()
-        val endingHour = range.getEndingHour()
-        val report = mutableListOf<Receipt>()
-        var counter = 0
-        var current: Receipt? = null
-        while (startingHour <= endingHour) {
-            current = list.getOrNull(counter) ?: current
-            while((current?.transactionDate?.toEpoch ?: Long.MAX_VALUE) < (startingHour + hourOffset)) {
-                list.getOrNull(++counter) ?: current
-                continue
-            }
-            report.add(Receipt(DateTimeParser.epochToString(startingHour + hourOffset), current?.amount ?: BigDecimal.ZERO))
-            startingHour += hourOffset
-        }
-        return TransactionList(report)
+        val hourOffset = 60 * 60L
+        val startingHour: Long = range.getStartingHour()
+        val endingHour: Long = range.getEndingHour()
+        val margin = (startingHour - (list.firstOrNull()?.transactionDate?.toEpoch ?: startingHour)) % hourOffset
+        val report = list.groupBy { (it.transactionDate.toEpoch - startingHour) / hourOffset }
+            .map { (it.key + 1) * hourOffset + startingHour to it.value.maxOf { r -> r.amount } }
+            .toMap()
+        var latestBalance = BigDecimal.ZERO
+        return ((startingHour)..(endingHour + hourOffset) step hourOffset)
+            .map { hour -> Receipt.of(hour, range.startDate.timeZone, report[hour]?.apply { latestBalance = this } ?: latestBalance) }
+            .let { TransactionList(it) }
     }
 
 

@@ -1,16 +1,15 @@
 package dto
 
 import common.DateTimeParser
+import java.time.ZoneId
 
-class TransactionDate(val base: String) {
+class TransactionDate(base: String) {
 
     @Transient
     val dateTime = DateTimeParser.parseToDate(base)
-    @Transient
-    val localDateTime = DateTimeParser.parseToLocalDate(base)
 
-    val toEpoch get() = dateTime.time
-    val hour get() = localDateTime.hour
+    val toEpoch get() = dateTime.toEpochSecond()
+    val timeZone: ZoneId get() = dateTime.zone
 
     companion object {
         fun from(epoch: Long): TransactionDate {

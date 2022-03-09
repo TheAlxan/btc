@@ -18,14 +18,10 @@ class BalanceRequest(@SerializedName("startDatetime") private val startDateTime:
     }
 
     fun getStartingHour(): Long {
-        val minutesToReduce = startDate.localDateTime.minute
-        val secondsToReduce = startDate.localDateTime.second
-        return startDate.toEpoch - minutesToReduce * 1000 * 60 - secondsToReduce * 1000
+        return startDate.toEpoch
     }
 
     fun getEndingHour(): Long {
-        val minutesToReduce = endDate.localDateTime.minute
-        val secondsToReduce = endDate.localDateTime.second
-        return endDate.toEpoch - minutesToReduce * 1000 * 60 - secondsToReduce * 1000
+        return endDate.toEpoch
     }
 }

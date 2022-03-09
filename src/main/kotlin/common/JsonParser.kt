@@ -8,7 +8,7 @@ object JsonParser {
     private val gson = Gson()
 
     fun getParser() = gson
-    fun <T: BaseDto> parseTo(json: String, clazz: Class<T>): T = getParser().fromJson(json, clazz).apply { this.initialize() }
+    fun <T> parseTo(json: String, clazz: Class<T>): T = getParser().fromJson(json, clazz).apply { if (this is BaseDto) initialize() }
     fun serialize(data: Any): String? {
         return getParser().toJson(data)
     }
