@@ -6,3 +6,7 @@ database:
   username: Reza
   password: TheAlxan
   url: jdbc:h2:~/anymind
+#  url: jdbc:h2:mem:anymind
+
+  # delay for fixing database late records, milliseconds, 2 * 60 * 1000
+  fixDelay: 600000

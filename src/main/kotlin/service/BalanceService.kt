@@ -22,7 +22,6 @@ class BalanceService {
         val hourOffset = 60 * 60L
         val startingHour: Long = range.getStartingHour()
         val endingHour: Long = range.getEndingHour()
-        val margin = (startingHour - (list.firstOrNull()?.transactionDate?.toEpoch ?: startingHour)) % hourOffset
         val report = list.groupBy { (it.transactionDate.toEpoch - startingHour) / hourOffset }
             .map { (it.key + 1) * hourOffset + startingHour to it.value.maxOf { r -> r.amount } }
             .toMap()

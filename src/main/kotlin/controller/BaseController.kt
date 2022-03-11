@@ -1,32 +1,19 @@
 package controller
 
-import common.JsonParser
-import dto.BaseDto
-import exception.BaseException
-import io.vertx.core.Handler
+import common.Logger
 import io.vertx.ext.web.RoutingContext
+import java.util.*
 
-abstract class BaseController<T>(private val clazz: Class<T>): Handler<RoutingContext> {
+abstract class BaseController<T>(clazz: Class<T>): BaseHandler<T>(clazz) {
+    private val logger = Logger(clazz)
     abstract fun guard(request: Request<T>)
     abstract fun handleRequest(request: Request<T>): Any?
     override fun handle(ctx: RoutingContext) {
-        try {
-            val request = Request<T>(ctx, deserialize(ctx))
-            guard(request)
-            val result = handleRequest(request)?.let { JsonParser.serialize(it) } ?: "Successful!"
-            ctx.end(result)
-        } catch (e: Exception) {
-            if (e is BaseException) {
-                ctx.end(e.msg)
-            } else {
-                ctx.end("Something went wrong!")
-                e.printStackTrace()
-            }
-        }
+        logger.log("Request from ${ctx.request().remoteAddress()} at ${Date()}")
+        val request = Request<T>(ctx, deserialize(ctx))
+        guard(request)
+        val result = handleRequest(request)?.let { Response.from(it) } ?: Response.fromDefaultSuccess()
+        ctx.response().putHeader("Content-Type", "application/json")
+        ctx.end(result.serialize())
     }
-
-    private fun deserialize(req: RoutingContext) = JsonParser.parseTo(req.bodyAsString ?: "", clazz)
-    fun getPathParameter(context: RoutingContext, name: String): String? = context.request().getParam(name)
-
-    data class Request<T>(val context: RoutingContext, val input: T)
 }

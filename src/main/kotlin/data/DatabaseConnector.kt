@@ -2,6 +2,7 @@ package data
 
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
+import common.Logger
 import config.AppConfig
 import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.SchemaUtils
@@ -9,7 +10,8 @@ import org.jetbrains.exposed.sql.transactions.transaction
 import javax.sql.DataSource
 
 object DatabaseConnector {
-    const val DATABASE_NAME = "anymind"
+    private const val DATABASE_NAME = "anymind"
+    private val logger = Logger(DatabaseConnector::class.java)
     private lateinit var dataSource: DataSource
     private lateinit var database: Database
 
@@ -22,6 +24,7 @@ object DatabaseConnector {
         dataSource = HikariDataSource(config)
         database = Database.connect(dataSource)
         setUpDatabase()
+        logger.log("Database connection established")
     }
 
     private fun setUpDatabase() {

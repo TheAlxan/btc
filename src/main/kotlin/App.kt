@@ -1,5 +1,6 @@
 import config.AppConfig
 import data.DatabaseConnector
+import data.DatabaseMaintainer
 import org.apache.commons.cli.DefaultParser
 import org.apache.commons.cli.Option
 import org.apache.commons.cli.Options
@@ -10,6 +11,7 @@ object App {
         AppConfig.loadConfig()
         parseArgs(args)
         DatabaseConnector.connect()
+        DatabaseMaintainer.initialize()
         Server().createServer()
     }
 

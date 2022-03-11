@@ -3,11 +3,13 @@ package controller.admin
 import controller.BaseController
 import data.BalanceTable
 import data.DatabaseConnector
+import data.DelayedTable
 import data.TablesList
 import dto.Receipt
 import exception.Admin
 import exception.Common
 import org.jetbrains.exposed.sql.SchemaUtils
+import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.transactions.transaction
 import service.BalanceService
 import java.math.BigDecimal
@@ -16,11 +18,12 @@ class AdminHandler : BaseController<Any>(Any::class.java) {
 
     private object Commands {
         private val methods = mapOf(
-            "dropDatabase" to ::dropDatabase
+            "dropDatabase" to ::dropDatabase,
+            "delayedCount" to ::delayedCount
         )
 
-        fun runCommand(cmd: String) {
-            methods.get(cmd)?.invoke() ?: throw Admin.CommandNotFoundException()
+        fun runCommand(cmd: String): Any? {
+            return (methods[cmd] ?: throw Admin.CommandNotFoundException()).invoke()
         }
 
         private fun dropDatabase() {
@@ -29,12 +32,18 @@ class AdminHandler : BaseController<Any>(Any::class.java) {
                 TablesList.getTables().forEach { SchemaUtils.createMissingTablesAndColumns(it) }
             }
         }
+
+        private fun delayedCount(): Long {
+            return transaction(DatabaseConnector.getDatabase()) {
+                return@transaction DelayedTable.selectAll().count()
+            }
+        }
     }
     override fun guard(request: Request<Any>) {
         require(getPathParameter(request.context, "cmd")?.isNotEmpty() ?: false) { throw Common.NonePositiveAmountException() }
     }
 
-    override fun handleRequest(request: Request<Any>) {
-        Commands.runCommand(getPathParameter(request.context, "cmd")!!)
+    override fun handleRequest(request: Request<Any>): Any? {
+        return Commands.runCommand(getPathParameter(request.context, "cmd")!!)
     }
 }

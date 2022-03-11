@@ -1,6 +1,8 @@
 package server
 
 import config.AppConfig
+import controller.BaseController
+import controller.FailHandler
 import controller.admin.AdminHandler
 import controller.balance.BalanceHandler
 import controller.balance.SaveHandler
@@ -24,16 +26,15 @@ class Server {
     }
 
     private fun setUpRoutes(router: Router) {
-        router.route(HttpMethod.POST, "/save")
-            .handler(BodyHandler.create())
-            .handler(SaveHandler())
+        registerRoute(router, SaveHandler(),"/save", HttpMethod.POST)
+        registerRoute(router, BalanceHandler(),"/balance", HttpMethod.GET)
+        registerRoute(router, AdminHandler(),"/admin/:cmd", HttpMethod.POST)
+    }
 
-        router.route(HttpMethod.GET, "/balance")
+    private fun registerRoute(router: Router, handler: BaseController<*>, path: String, method: HttpMethod){
+        router.route(method, path)
             .handler(BodyHandler.create())
-            .handler(BalanceHandler())
-
-        router.route(HttpMethod.POST, "/admin/:cmd")
-            .handler(BodyHandler.create())
-            .handler(AdminHandler())
+            .handler(handler)
+            .failureHandler(FailHandler(handler::class.java))
     }
 }

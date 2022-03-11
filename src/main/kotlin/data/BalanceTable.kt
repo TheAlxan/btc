@@ -5,93 +5,73 @@ import dto.BalanceRequest
 import dto.Receipt
 import dto.TransactionDate
 import dto.TransactionList
-import exception.Data
 import org.jetbrains.exposed.sql.*
-import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
-import org.jetbrains.exposed.sql.transactions.transaction
+import org.jetbrains.exposed.sql.transactions.TransactionManager
 import java.math.BigDecimal
+import java.util.*
 
 object BalanceTable : BaseTable("balance") {
 
-    private enum class RecordStatus(val code: Int) {
-        CLEAR(0),
-        LATE(1),
-        FIXED(2);
-
-        companion object {
-            fun from(code: Int): RecordStatus {
-                return values().firstOrNull { it.code == code } ?: throw Data.InvalidTransactionRecordStatus()
-            }
-
-            fun getRecordStatus(current: Receipt, previous: TransactionRecord?): Short {
-                return when {
-                    current.transactionDate.toEpoch < (previous?.time?.toEpoch ?: 0) -> LATE.code.toShort()
-                    else -> CLEAR.code.toShort()
-                }
-            }
-        }
-    }
-
     val id = integer("id").autoIncrement()
-    val time = long("time").index()
-    val amount = decimal("amount", 13, 8)
-    val balance = decimal("balance", 13, 8).index()
-    val status = short("status").index()
-
+    private val time = long("time").index()
+    private val amount = decimal("amount", 13, 8)
+    private val balance = decimal("balance", 13, 8)
+    private val writeTime = long("writeTime")
 
     override val primaryKey = PrimaryKey(id, name = "PK_Balance_ID")
 
     fun saveTransaction(receipt: Receipt) {
         transactionForBalance {
-            val latest = getLatestRecord()
-            val latestClear = if (latest?.status == RecordStatus.CLEAR) latest else getLatestClearRecord()
-
-            var currentBalance = latestClear?.currentBalance ?: BigDecimal.ZERO
+            val lateRecords = DelayedTable.getDelayed()
+            val latest = getLatestRecord(lateRecords)
+            val currentBalance = latest?.currentBalance ?: BigDecimal.ZERO
             currentBalance.plus(receipt.amount)
-            if (latest?.isLate() == true)
-                currentBalance = currentBalance.plus(latest.amount)
 
-
-            insert {
+            val id = insert {
                 it[time] = receipt.transactionDate.toEpoch
                 it[amount] = receipt.amount
                 it[balance] = currentBalance
-                it[status] = RecordStatus.getRecordStatus(receipt, latestClear)
-            }
+                it[writeTime] = Date().time
+            }[id]
+
+            if (receipt.transactionDate.toEpoch < (latest?.time?.toEpoch ?: 0))
+                DelayedTable.addDelayed(id)
         }
     }
 
     fun getBalance(range: BalanceRequest): TransactionList {
         return transactionForBalance {
             val transactions = getRecordsInRange(range)
-            var lateBalance = getLateRecordsSumBefore(range.startDate)
-            transactions.forEach { it.setBalance(lateBalance); it.sum(it.amount); lateBalance = it.currentBalance }
-            return@transactionForBalance TransactionList(transactions.map { it.toReceipt() })
+            var lateBalance = getLateRecordsSumBefore(range)
+            val lateBalanceBk = lateBalance
+            return@transactionForBalance TransactionList(
+                transactions.map { it.toReceipt().apply { this.amount = this.amount.plus(lateBalance) } } +
+                        Receipt(DateTimeParser.epochToString(range.startDate.toEpoch - 60 * 60, range.startDate.timeZone), lateBalanceBk)
+            )
         }!!
     }
 
-    private fun fixLateRecord(record: TransactionRecord) {
-        update({
-            id.eq(record.id)
-        }) {
-            it[status] = RecordStatus.FIXED.code.toShort()
+    fun fixLateRecord() {
+        transactionForBalance {
+            val lateRecords = DelayedTable.getDelayed() ?: return@transactionForBalance
+            val selectedRecords = select { id.inList(lateRecords) }.orderBy(time to SortOrder.ASC).map { it[id] to it.toRecord() }
+            selectedRecords.forEach { record ->
+                TransactionManager.current().exec("UPDATE balance SET balance = balance + ${record.second.amount.toPlainString()} WHERE time > ${record.second.time.toEpoch} ")
+            }
+            DelayedTable.removeRecords()
         }
     }
 
-    private fun getLatestRecord(): TransactionRecord? {
-        return selectAll().orderBy(time to SortOrder.DESC).firstOrNull()?.toRecord()
+    private fun getLatestRecord(lateRecords: List<Int>?): TransactionRecord? {
+        return select { id.notInList(lateRecords ?: listOf()) }.orderBy(id to SortOrder.DESC).firstOrNull()?.toRecord()
     }
 
-    private fun getLatestClearRecord(): TransactionRecord? {
-        return select {
-            (status.eq(RecordStatus.CLEAR.code.toShort()))
-        }.orderBy(time to SortOrder.DESC).firstOrNull()?.toRecord()
-    }
-
-    private fun getLateRecordsSumBefore(transactionDate: TransactionDate): BigDecimal {
-        return slice(balance).select {
-            (time.lessEq(transactionDate.toEpoch)) and (status.eq(RecordStatus.LATE.code.toShort()))
-        }.map { it[balance] }.reduceOrNull { acc, it -> acc.plus(it) } ?: BigDecimal.ZERO
+    private fun getLateRecordsSumBefore(range: BalanceRequest): BigDecimal {
+        val lateRecords = DelayedTable.getDelayed() ?: return BigDecimal.ZERO
+        val selectedRecords = select { id.inList(lateRecords) }.map { it.toRecord() }
+        return selectedRecords.filter { it.time.toEpoch < range.startDate.toEpoch }
+            .map { it.amount }
+            .reduceOrNull { acc, i -> acc.plus(i) } ?: BigDecimal.ZERO
     }
 
     private fun getRecordsInRange(range: BalanceRequest): List<TransactionRecord> {
@@ -105,8 +85,7 @@ object BalanceTable : BaseTable("balance") {
             this[id],
             TransactionDate.from(this[time]),
             this[amount],
-            this[balance],
-            RecordStatus.from(this[status].toInt())
+            this[balance]
         )
     }
 
@@ -119,11 +98,13 @@ object BalanceTable : BaseTable("balance") {
         val time: TransactionDate,
         val amount: BigDecimal,
         var currentBalance: BigDecimal,
-        val status: RecordStatus
     ) {
-        fun isLate() = status == RecordStatus.LATE
 
-
+        init {
+            amount.setScale(8)
+            currentBalance.setScale(8)
+        }
+        
         fun sum(other: BigDecimal) {
             currentBalance = currentBalance.plus(other)
         }
@@ -133,23 +114,3 @@ object BalanceTable : BaseTable("balance") {
         }
     }
 }
-
-/**
-
-time, amount
-time, balance, dmged
-
-
-10, 1   10, 11
-20, 1   20, 12
-30, 1   30, 13
-40, 1   40, 14
-11, 1   11, 12, l
-50, 1   50, 16
-60, 1   60, 17
-31, 1   31, 14
-70, 1   70, 19
-
-
-
- */
