@@ -1,15 +1,6 @@
 package data
 
-import common.DateTimeParser
-import dto.BalanceRequest
-import dto.Receipt
-import dto.TransactionDate
-import dto.TransactionList
-import exception.Data
 import org.jetbrains.exposed.sql.*
-import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
-import org.jetbrains.exposed.sql.transactions.transaction
-import java.math.BigDecimal
 
 object DelayedTable : BaseTable("delayed") {
 
@@ -30,6 +21,8 @@ object DelayedTable : BaseTable("delayed") {
     }
 
     fun removeRecords() {
-        deleteAll()
+        transactionForBalance {
+            deleteAll()
+        }
     }
 }

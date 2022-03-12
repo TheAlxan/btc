@@ -1,8 +1,6 @@
 package dto
 
 import com.google.gson.annotations.SerializedName
-import java.math.BigDecimal
-import java.util.Calendar
 
 class BalanceRequest(@SerializedName("startDatetime") private val startDateTime: String,
                      @SerializedName("endDatetime") private val endDateTime: String): BaseDto() {

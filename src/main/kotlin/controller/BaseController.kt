@@ -12,7 +12,12 @@ abstract class BaseController<T>(clazz: Class<T>): BaseHandler<T>(clazz) {
         logger.log("Request from ${ctx.request().remoteAddress()} at ${Date()}")
         val request = Request<T>(ctx, deserialize(ctx))
         guard(request)
-        val result = handleRequest(request)?.let { Response.from(it) } ?: Response.fromDefaultSuccess()
+        val result = handleRequest(request).let { r ->
+            if (r is Unit)
+                Response.fromDefaultSuccess()
+            else
+                Response.from(r)
+        }
         ctx.response().putHeader("Content-Type", "application/json")
         ctx.end(result.serialize())
     }

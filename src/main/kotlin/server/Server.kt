@@ -1,5 +1,6 @@
 package server
 
+import common.Logger
 import config.AppConfig
 import controller.BaseController
 import controller.FailHandler
@@ -12,11 +13,14 @@ import io.vertx.ext.web.Router
 import io.vertx.ext.web.handler.BodyHandler
 
 class Server {
+    private val logger = Logger(Server::class.java)
     private val vertx: Vertx = Vertx.vertx()
+
     fun createServer() {
         val server = vertx.createHttpServer()
         server.requestHandler(getRouter())
         server.listen(AppConfig.getInstance().server.port!!, AppConfig.getInstance().server.ip!!)
+        logger.log("Server started listening on ${AppConfig.getInstance().server.ip!!}:${AppConfig.getInstance().server.port!!}")
     }
 
     private fun getRouter(): Router? {
@@ -27,7 +31,7 @@ class Server {
 
     private fun setUpRoutes(router: Router) {
         registerRoute(router, SaveHandler(),"/save", HttpMethod.POST)
-        registerRoute(router, BalanceHandler(),"/balance", HttpMethod.GET)
+        registerRoute(router, BalanceHandler(),"/balance", HttpMethod.POST)
         registerRoute(router, AdminHandler(),"/admin/:cmd", HttpMethod.POST)
     }
 

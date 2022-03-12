@@ -1,7 +1,6 @@
 package controller.balance
 
 import controller.BaseController
-import dto.BalanceRequest
 import dto.Receipt
 import exception.Common
 import service.BalanceService

@@ -5,7 +5,7 @@ import common.Logger
 import exception.BaseException
 import exception.Input
 import io.vertx.ext.web.RoutingContext
-import org.slf4j.LoggerFactory
+import java.time.format.DateTimeParseException
 import java.util.*
 
 class FailHandler(clazz: Class<*>): BaseHandler<String>(String::class.java) {
@@ -20,6 +20,16 @@ class FailHandler(clazz: Class<*>): BaseHandler<String>(String::class.java) {
                 response.end(getFailMessage(exception))
             }
             is JsonSyntaxException -> {
+                val clientError = Input.InvalidInputException()
+                response.statusCode = clientError.code
+                response.end(getFailMessage(clientError))
+            }
+            is DateTimeParseException -> {
+                val clientError = Input.InvalidInputException()
+                response.statusCode = clientError.code
+                response.end(getFailMessage(clientError))
+            }
+            is NullPointerException -> {
                 val clientError = Input.InvalidInputException()
                 response.statusCode = clientError.code
                 response.end(getFailMessage(clientError))

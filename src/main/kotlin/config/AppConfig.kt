@@ -1,7 +1,6 @@
 package config
 
 import common.Logger
-import data.DatabaseMaintainer
 import org.yaml.snakeyaml.Yaml
 
 class AppConfig private constructor(){

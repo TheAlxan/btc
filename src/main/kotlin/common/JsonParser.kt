@@ -1,6 +1,5 @@
 package common
 
-import dto.Receipt
 import com.google.gson.Gson
 import dto.BaseDto
 

@@ -3,7 +3,6 @@ package controller.balance
 import controller.BaseController
 import dto.BalanceRequest
 import dto.TransactionList
-import exception.Common
 import exception.Input
 import service.BalanceService
 

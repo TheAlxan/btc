@@ -5,8 +5,10 @@ server:
 database:
   username: Reza
   password: TheAlxan
+  # this is for persisting to disk
   url: jdbc:h2:~/anymind
-#  url: jdbc:h2:mem:anymind
+  # this is for In-Memory database
+  #  url: jdbc:h2:mem:anymind
 
-  # delay for fixing database late records, milliseconds, 2 * 60 * 1000
-  fixDelay: 600000
+  # period delay for fixing database late records, milliseconds, 10 * 60  * 1000, currently set to 10 minutes
+  fixDelay: 15000

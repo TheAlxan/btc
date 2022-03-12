@@ -1,6 +1,5 @@
 package service
 
-import common.DateTimeParser
 import data.BalanceTable
 import dto.BalanceRequest
 import dto.Receipt
@@ -26,7 +25,7 @@ class BalanceService {
             .map { (it.key + 1) * hourOffset + startingHour to it.value.maxOf { r -> r.amount } }
             .toMap()
         var latestBalance = BigDecimal.ZERO
-        return ((startingHour)..(endingHour + hourOffset) step hourOffset)
+        return ((startingHour)..(endingHour) step hourOffset)
             .map { hour -> Receipt.of(hour, range.startDate.timeZone, report[hour]?.apply { latestBalance = this } ?: latestBalance) }
             .let { TransactionList(it) }
     }
